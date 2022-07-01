@@ -1,0 +1,130 @@
+#add a new ESPhome device for generic ESP8266 and add below configuration to
+#to the default configuration
+
+#operation of lights and actions from buttons must be implemented in home
+#assistant, nothing is automated within the device 
+   
+#min and max power adjusted to make LED turn on at 1% brightness in HA and 
+#not exceed maximum output of the power supply for 100% brightness in HA.
+#You may need to tweek this per application
+   
+output:
+  - platform: esp8266_pwm
+    pin: 14
+    frequency: 1000 Hz
+    id: led_pwm_ch1
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true
+  - platform: esp8266_pwm
+    pin: 5
+    frequency: 1000 Hz
+    id: led_pwm_ch2
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true  
+  - platform: esp8266_pwm
+    pin: 12
+    frequency: 1000 Hz
+    id: led_pwm_ch3
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true 
+  - platform: esp8266_pwm
+    pin: 13
+    frequency: 1000 Hz
+    id: led_pwm_ch4
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true  
+  - platform: esp8266_pwm
+    pin: 4
+    frequency: 1000 Hz
+    id: led_pwm_ch5
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true  
+  - platform: esp8266_pwm
+    pin: 15
+    frequency: 1000 Hz
+    id: led_pwm_ch6 
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true 
+
+light:
+  - platform: monochromatic
+    output: led_pwm_ch1
+    name: "LED CH1 Light"  
+  - platform: monochromatic
+    output: led_pwm_ch2
+    name: "LED CH2 Light"      
+  - platform: monochromatic
+    output: led_pwm_ch3
+    name: "LED CH3 Light"  
+  - platform: monochromatic
+    output: led_pwm_ch4
+    name: "LED CH4 Light"  
+  - platform: monochromatic
+    output: led_pwm_ch5
+    name: "LED CH5 Light"  
+  - platform: monochromatic
+    output: led_pwm_ch6
+    name: "LED CH6 Light"      
+    
+sensor:
+  # Uptime sensor.
+  - platform: uptime
+    name: led_pwm Uptime
+
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: led_pwm WiFi Signal
+    update_interval: 60s
+
+
+binary_sensor:
+  - platform: gpio
+    name: "Power Button"
+    pin:
+      number: 0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms        
+  - platform: gpio
+    name: "Clock Button"
+    pin:
+      number: 2
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms        
+  - platform: gpio
+    name: "Cycle Button"
+    pin:
+      number: 3
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms        
+  - platform: gpio
+    name: "Brightness Button"
+    pin:
+      number: 16
+      inverted: false
+      mode:
+        input: true
+        pulldown: true   
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms        
