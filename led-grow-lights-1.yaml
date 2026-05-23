@@ -1,0 +1,206 @@
+esphome:
+  name: led-grow-lights-1
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: 
+
+ota:
+  password: 
+  platform: esphome
+  
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Led-Grow-Lights-1"
+    password: "xrtJOk6BfJM4"
+
+captive_portal:
+    
+output:
+  - platform: esp8266_pwm
+    pin: 5
+    frequency: 1000 Hz
+    id: led_pwm_ch2
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true  
+  - platform: esp8266_pwm
+    pin: 13
+    frequency: 1000 Hz
+    id: led_pwm_ch4
+    min_power: 0.02
+    max_power: 0.4
+    zero_means_zero: true  
+
+light:
+  - platform: monochromatic
+    output: led_pwm_ch2
+    name: "Left Arm"      
+    id: left_arm
+  - platform: monochromatic
+    output: led_pwm_ch4
+    name: "Right Arm"  
+    id: right_arm
+    
+sensor:
+  # Uptime sensor.
+  - platform: uptime
+    name: led_pwm Uptime
+
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: led_pwm WiFi Signal
+    update_interval: 60s
+
+
+binary_sensor:
+  - platform: gpio
+    name: "Power Button"
+    pin:
+      number: 0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms
+    on_press:
+      then:
+        - lambda: !lambda |-
+            bool left_on = false;
+            bool right_on = false;
+            id(left_arm).current_values_as_binary(&left_on);
+            id(right_arm).current_values_as_binary(&right_on);
+            ESP_LOGD("main", "Power button press:  %d : %d", left_on, right_on);
+            if (left_on || right_on) {
+              id(left_arm).turn_off().perform();
+              id(right_arm).turn_off().perform();
+              ESP_LOGD("main", "  Off Branch");
+            }
+            else {
+              if(id(light_mode).current_option() == std::string("Both")) {
+                id(left_arm).turn_on().perform();
+                id(right_arm).turn_on().perform();
+                ESP_LOGD("main", "  Both Branch");                
+              }
+              if(id(light_mode).current_option()==std::string("Left")) {
+                id(left_arm).turn_on().perform();
+                id(right_arm).turn_off().perform();
+                ESP_LOGD("main", "  Left Branch");                
+              }
+              if(id(light_mode).current_option()==std::string("Right")) {
+                id(left_arm).turn_off().perform();
+                id(right_arm).turn_on().perform();
+                ESP_LOGD("main", "  Right Branch");
+              }
+            }
+  - platform: gpio
+    name: "Clock Button"
+    pin:
+      number: 2
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms 
+    on_press:
+      then:
+        - lambda: !lambda |-
+            ESP_LOGD("main", "Clock button press:");
+
+  - platform: gpio
+    name: "Cycle Button"
+    pin:
+      number: 3
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms  
+    on_press:
+      then:
+        - lambda: !lambda |-
+            ESP_LOGD("main", "Cycle button press:");
+        - select.next: light_mode
+
+
+  - platform: gpio
+    name: "Brightness Button"
+    pin:
+      number: 16
+      inverted: false
+      mode:
+        input: true
+        pulldown: true   
+    filters:
+      - delayed_on: 3ms
+      - delayed_off: 3ms 
+    on_press:
+      then:
+        - lambda: !lambda |-
+            ESP_LOGD("main", "Brightness button press:");             
+
+select:
+  - platform: template
+    name: "Light Mode"
+    id: light_mode
+    options:
+      - Both
+      - Left
+      - Right
+    update_interval: 1s 
+    lambda: !lambda |-
+      ESP_LOGD("main", "Select lambda");
+      bool left_on = false;
+      bool right_on = false;
+      id(left_arm).current_values_as_binary(&left_on);
+      id(right_arm).current_values_as_binary(&right_on);
+      if (left_on && right_on)
+        return(std::string("Both"));
+      if (left_on)
+        return(std::string("Left"));
+      if (right_on)
+        return(std::string("Right"));
+      return {};
+    on_value:
+      then:
+        - lambda: !lambda |-
+            ESP_LOGD("main", "Select on_value: %s", x.c_str());
+    #set action, external from HA
+    set_action:
+      then:
+        - lambda: !lambda |-
+            ESP_LOGD("main", "Select set_action: %s", x.c_str());
+            if(x==std::string("Both")) {
+              ESP_LOGD("main", "Select set_action: Both_");
+              id(left_arm).turn_on().perform();
+              id(right_arm).turn_on().perform();
+            }
+            if(x==std::string("Left")) {
+              ESP_LOGD("main", "Select set_action: Left_");
+              id(left_arm).turn_on().perform();
+              id(right_arm).turn_off().perform();
+            }
+            if(x==std::string("Right")) {
+              ESP_LOGD("main", "Select set_action: Right_");
+              id(left_arm).turn_off().perform();
+              id(right_arm).turn_on().perform();
+            }
+
+
